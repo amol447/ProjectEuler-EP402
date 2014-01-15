@@ -7,6 +7,12 @@ open FsCheck
 type listMonadBuilder()=
         member x.Bind(comp,func)= comp|>List.map(fun x->func x)|> List.concat
         member x.Return(comp)=[comp]
+//[<CustomComparison>]
+//type abcTriplet (ain,bin,cin)=
+//    member this.(a,b,c)=(ain,bin,cin)
+//    interface System.IComparable with
+//        override  x.CompareTo(y)=
+            
 let mod2Test a b c= 0=((1+a+b+c) % 2)
 let mod3Test a b c= (2=b%3) && (0=(a+c)%3)
 let mod4Test a b c=
@@ -52,9 +58,9 @@ let inline boolToInt b=
 
 let abcTriplets=
     listMonadBuilder(){
-        let!x=[0..23]
-        let!y=[0..23]
-        let!z=[0..23]
+        let!x=[1..24]
+        let!y=[1..24]
+        let!z=[1..24]
         return x,y,z}
 let findMaxDivisor  y=
     let powersOf2 x=Seq.unfold(fun state->match (x|||>modnTest state ) with
@@ -78,7 +84,7 @@ let initState2=(0L,1)
 let stateAdd (q1,r1) (q2,r2) = 
     let remTemp=(r1+r2)
     let rem=match remTemp with
-            |x when x>23->((x-24),true)
+            |x when x>24->((x-24),true)
             |_->(remTemp,false)
     let quotient = (q1+q2+(boolToInt (snd rem)))|>mod109
     (quotient,fst rem)
@@ -90,9 +96,43 @@ let stateAdd (q1,r1) (q2,r2) =
 //    (fun (x,y,z)-> (numRemainderArray.[x]*numRemainderArray.[ y]) |>mod109|>(fun x ->x*numRemainderArray.[z])|>mod109)
 let numRemainderFunc state x= 
         match x with
-        |y when y=0->fst state
         |y when y<=snd state->1L+fst state      
         |_->fst state  
+let groupByFunc (a,b,c) r=
+    let listed=[a;b;c]
+    List.fold(fun acc x->
+        if x<=r 
+        then 
+            acc + 1
+        else
+            acc) 0 listed
+let myMult (x:int64) y=(x*y)|>mod109
+let divisorList=[1;2;3;4;6;8;12;24]
+let remainderList=[1..24]
+let divisorRemainderList=listMonadBuilder() {
+                         let!d=divisorList
+                         let!r=remainderList
+                         return (d,r)}
+let maxDivisorRemainderCache=
+    let maxDivisorFunc divisor r= 
+        maxDivisorTripletMap.[divisor]
+        |>Seq.groupBy(fun x->groupByFunc x r)
+        |>Seq.map(fun (key,sequence)-> (key,Seq.length sequence))
+        |>Map.ofSeq
+    divisorRemainderList|>List.map(fun (x,y)->maxDivisorFunc x y)|> Seq.zip divisorRemainderList |>Map.ofSeq
+let maxDivisorRemainderFunc (q1,r) d= 
+    let q=q1+1L
+    maxDivisorRemainderCache.[(d,r)]
+    |>Map.fold(fun acc key value-> 
+        let result=
+            match key with                                 
+            |3->int64 value|>myMult q|>  myMult q|>myMult q
+            |2->int64 value|>myMult q|>  myMult q|>myMult (q-1L)
+            |1->int64 value|>myMult q|>  myMult (q-1L)|>myMult (q-1L)
+            |_->int64 value|>myMult (q-1L)|>  myMult (q-1L)|>myMult (q-1L)
+        acc+result) 0L
+    |>mod109|>(fun x->x*int64 d)|>mod109
+
 //let countNumTriplets (a,b,c) state= (countNumTripletsPartial state )(a,b,c)
 let maxDivisorContribution state d  =
     let numRemainderMap= numRemainderFunc state

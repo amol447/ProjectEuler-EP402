@@ -6,14 +6,21 @@ module main=
     //let test=divisorList|>List.map(fun x->(divTest.maxDivisorContribution (1L,0L) x)/x)//|>List.sum
     //printf "testAns=%A\n\r" test
     let findSum y=divisorList|>List.map(fun x->divTest.maxDivisorContribution y x)|>List.fold(fun acc x->divTest.mod109 (acc+x)) 0L
+    let findSum2 y=divisorList|>List.map(fun x->divTest.maxDivisorRemainderFunc y x)|>List.fold(fun acc x->divTest.mod109 (acc+x)) 0L
     let fibSeq=Seq.unfold(fun (prev,prevprev,n)->
         let nextFib=divTest.stateAdd prev prevprev
-        if(n<123456L) then Some (prev ,(nextFib,prev,n+1L))
+        if(n<12345678L) then Some (prev ,(nextFib,prev,n+1L))
         else None) (divTest.initState1,divTest.initState2,1L)
     //Seq.iter(fun x->printf "%A\n\r" x)fibSeq
-    printf "testAns%A\n\r" (findSum (10000L/24L,int (10000L%24L)))
+    let createState N=
+        let q=N/24L
+        let r=N%24L
+        match r with
+        |0L->(q-1L,24)
+        |_->(q,int r)
+    printf "testAns%A\n\r" (findSum2 (createState 10000L))
     //let finalAns=Seq.map(fun x->findSum x) fibSeq
-    let finalAns=Seq.fold(fun acc x->divTest.mod109 (acc+findSum x)) 0L fibSeq
+    let finalAns=Seq.fold(fun acc x->divTest.mod109 (acc+findSum2 x)) 0L fibSeq
     //Seq.iter(fun x->printf "%A\n\r" x ) finalAns
     printf "%A" finalAns
     //let testIntermediate=divTest.maxDivisorTripletMap.[4]
