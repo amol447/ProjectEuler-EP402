@@ -77,17 +77,18 @@ let maxDivisorTripletMap=maxDivisorTriplet|>Seq.zip abcTriplets|>Seq.groupBy(fun
 //let testMap n=maxDivisorTripletMap|>Map.map(fun key value->Seq.filter(fun (a,b,c)->(a<=n) && (b<=n) && (c<=n) && (a > 0L) && (b>0L) && (c>0L))  value)
                                   //|>Map.map(fun key value->Seq.length value)
                                   //|>Map.fold(fun acc key value->acc+key*value) 0
-let inline mod109 x= x%(pown 10L 9)
+let inline mod10k k x= x%(pown 10L k)
 let initState1=(0L,1)
 let initState2=(0L,1)
-               
-let stateAdd (q1,r1) (q2,r2) = 
+let mod109 = mod10k 9
+let stateAddK k (q1,r1) (q2,r2) = 
     let remTemp=(r1+r2)
     let rem=match remTemp with
             |x when x>24->((x-24),true)
             |_->(remTemp,false)
-    let quotient = (q1+q2+(boolToInt (snd rem)))|>mod109
+    let quotient = (q1+q2+(boolToInt (snd rem)))|>mod10k k
     (quotient,fst rem)
+let stateAdd =stateAddK 9
 //let dictIModN =
 //let countNumTripletsPartial  state=
 //    let numRemainderArray=Array.init 24 (fun x->match x with 
@@ -106,32 +107,42 @@ let groupByFunc (a,b,c) r=
             acc + 1
         else
             acc) 0 listed
-let myMult (x:int64) y=(x*y)|>mod109
+let myMultMod10K k (x:int64) y=(x*y)|>mod10k k
+let myMult =myMultMod10K 9
+let rec myPowMod10K k x n  = 
+    let y=(mod10k k x)
+    match n with
+    |0->1L
+    |1->y
+    |_->(myMultMod10K k y y)|>(fun a->myPowMod10K k a (n-1))  
 let divisorList=[1;2;3;4;6;8;12;24]
 let remainderList=[1..24]
 let divisorRemainderList=listMonadBuilder() {
                          let!d=divisorList
                          let!r=remainderList
                          return (d,r)}
-let maxDivisorRemainderCache=
+let maxDivisorContribRemainderCache=
     let maxDivisorFunc divisor r= 
         maxDivisorTripletMap.[divisor]
         |>Seq.groupBy(fun x->groupByFunc x r)
-        |>Seq.map(fun (key,sequence)-> (key,Seq.length sequence))
+        |>Seq.map(fun (key,sequence)-> (key,divisor*Seq.length sequence))
         |>Map.ofSeq
-    divisorRemainderList|>List.map(fun (x,y)->maxDivisorFunc x y)|> Seq.zip divisorRemainderList |>Map.ofSeq
-let maxDivisorRemainderFunc (q1,r) d= 
+    divisorRemainderList
+    |>List.map(fun (x,y)->maxDivisorFunc x y)
+    |> Seq.zip divisorRemainderList 
+    |>Map.ofSeq
+    |>Map.map(fun key value->
+            Map.fold(fun acc key value->
+                let (a,b,c,d)=acc
+                match key with
+                |3->(int64 value+a,b,c,d)
+                |2->(int64 value+a,b-int64 value,c,d)
+                |1->(int64 value+a,b-2L*int64 value,c+int64 value,d)
+                |_->(int64 value+a,b-3L*int64 value,c+3L*int64 value,d-int64 value)) (0L,0L,0L,0L) value)
+let maxDivisorRemainderFunc k (q1,r) d= 
     let q=q1+1L
-    maxDivisorRemainderCache.[(d,r)]
-    |>Map.fold(fun acc key value-> 
-        let result=
-            match key with                                 
-            |3->int64 value|>myMult q|>  myMult q|>myMult q
-            |2->int64 value|>myMult q|>  myMult q|>myMult (q-1L)
-            |1->int64 value|>myMult q|>  myMult (q-1L)|>myMult (q-1L)
-            |_->int64 value|>myMult (q-1L)|>  myMult (q-1L)|>myMult (q-1L)
-        acc+result) 0L
-    |>mod109|>(fun x->x*int64 d)|>mod109
+    maxDivisorContribRemainderCache.[(d,r)]
+    |>(fun (a,b,c,d)->(a*(myPowMod10K k q 3 ) )+(b*(myPowMod10K k q 2 ))|>mod10k k|> (fun x->x+(c*(myPowMod10K k q 1)))|>mod10k k|>(fun x->x+d)|>mod10k k)
 
 //let countNumTriplets (a,b,c) state= (countNumTripletsPartial state )(a,b,c)
 let maxDivisorContribution state d  =
@@ -139,4 +150,13 @@ let maxDivisorContribution state d  =
     maxDivisorTripletMap.[d]|>Seq.map(fun (a,b,c)->(numRemainderMap a)*numRemainderMap b|>mod109|>(fun x->x*numRemainderMap c)|>mod109)
     |>Seq.fold(fun acc x->mod109 (acc+x)) 0L 
     |>(fun x-> x *int64 d)|>mod109
-
+let findSum2K k y=divisorList|>List.map(fun x->maxDivisorRemainderFunc k y x)|>List.fold(fun acc x->mod109 (acc+x)) 0L
+let findSum2=findSum2K 9
+let fibSum k N=
+    let rec fibSumHelp k N state=
+        let (prev,prevprev,acc)=state
+        match N with
+        |1L->acc
+        |_->fibSumHelp k (N-1L) ((stateAdd prev prevprev),prev,mod10k k (acc + findSum2K k prev))
+    fibSumHelp k N (initState1,initState2,0L)
+//let findSum y=divisorList|>List.map(fun x->maxDivisorContribution y x)|>List.fold(fun acc x->mod109 (acc+x)) 0L
