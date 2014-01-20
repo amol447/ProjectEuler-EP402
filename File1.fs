@@ -3,7 +3,9 @@
 open System
 open System.Numerics
 open System.Collections.Generic
+open Microsoft.FSharp.Math
 open FsCheck
+module matrixG=Matrix.Generic
 type listMonadBuilder()=
         member x.Bind(comp,func)= comp|>List.map(fun x->func x)|> List.concat
         member x.Return(comp)=[comp]
@@ -55,7 +57,6 @@ let inline boolToInt b=
 //    |_->m/24-(boolToInt (i=0))
 
 
-
 let abcTriplets=
     listMonadBuilder(){
         let!x=[1..24]
@@ -77,7 +78,20 @@ let maxDivisorTripletMap=maxDivisorTriplet|>Seq.zip abcTriplets|>Seq.groupBy(fun
 //let testMap n=maxDivisorTripletMap|>Map.map(fun key value->Seq.filter(fun (a,b,c)->(a<=n) && (b<=n) && (c<=n) && (a > 0L) && (b>0L) && (c>0L))  value)
                                   //|>Map.map(fun key value->Seq.length value)
                                   //|>Map.fold(fun acc key value->acc+key*value) 0
-let inline mod10k k x= x%(pown 10L k)
+let inline mod10k k x= 
+    match x%(pown 10L k) with
+    |y when y<0L->y+pown 10L k
+    |y->y
+let myMultMod10K k (x:int64) y=(x*y)|>mod10k k
+let myMult =myMultMod10K 9
+let fastFibMod10K k n=
+    let rec fastFibMod10KHelp k n x acc=
+        match n with
+        |1->matrixG.map(fun y->mod10k k y) (acc*x)
+        |_->match n%2 with 
+            |0->fastFibMod10KHelp k (n/2) (matrixG.map(fun y->mod10k k y) x*x) acc
+            |_->fastFibMod10KHelp k (n-1) x (matrixG.map(fun y->mod10k k y)acc*x)
+    (fastFibMod10KHelp k n (matrixG.ofSeq[[1L;1L];[1L;0L]] ) (matrixG.identity 2))*(matrixG.ofSeq[[1L];[0L]])|>(fun x->x.[0,1])
 let initState1=(0L,1)
 let initState2=(0L,1)
 let mod109 = mod10k 9
@@ -107,14 +121,16 @@ let groupByFunc (a,b,c) r=
             acc + 1
         else
             acc) 0 listed
-let myMultMod10K k (x:int64) y=(x*y)|>mod10k k
-let myMult =myMultMod10K 9
-let rec myPowMod10K k x n  = 
-    let y=(mod10k k x)
-    match n with
-    |0->1L
-    |1->y
-    |_->(myMultMod10K k y y)|>(fun a->myPowMod10K k a (n-1))  
+
+let  myPowMod10K k x n  =
+    let rec myPowMod10KHelp k x n acc= 
+        let y=(mod10k k x)
+        match n with
+        |0->acc
+        |_->match n%2 with
+            |0->myPowMod10KHelp k (myMultMod10K k y y) (n/2) acc
+            |_->myPowMod10KHelp k y (n-1) (myMultMod10K k acc y)
+    myPowMod10KHelp k x n 1L  
 let divisorList=[1;2;3;4;6;8;12;24]
 let remainderList=[1..24]
 let divisorRemainderList=listMonadBuilder() {
@@ -142,7 +158,7 @@ let maxDivisorContribRemainderCache=
 let maxDivisorRemainderFunc k (q1,r) d= 
     let q=q1+1L
     maxDivisorContribRemainderCache.[(d,r)]
-    |>(fun (a,b,c,d)->(a*(myPowMod10K k q 3 ) )+(b*(myPowMod10K k q 2 ))|>mod10k k|> (fun x->x+(c*(myPowMod10K k q 1)))|>mod10k k|>(fun x->x+d)|>mod10k k)
+    |>(fun (a,b,c,d)->(a*(myPowMod10K k q 3 ) )+(b*(myPowMod10K k q 2 ))|>(mod10k k)|> (fun x->x+(c*(myPowMod10K k q 1)))|>(mod10k k)|>(fun x->x+d)|>(mod10k k))
 
 //let countNumTriplets (a,b,c) state= (countNumTripletsPartial state )(a,b,c)
 let maxDivisorContribution state d  =
@@ -150,7 +166,7 @@ let maxDivisorContribution state d  =
     maxDivisorTripletMap.[d]|>Seq.map(fun (a,b,c)->(numRemainderMap a)*numRemainderMap b|>mod109|>(fun x->x*numRemainderMap c)|>mod109)
     |>Seq.fold(fun acc x->mod109 (acc+x)) 0L 
     |>(fun x-> x *int64 d)|>mod109
-let findSum2K k y=divisorList|>List.map(fun x->maxDivisorRemainderFunc k y x)|>List.fold(fun acc x->mod109 (acc+x)) 0L
+let findSum2K k y=divisorList|>List.map(fun x->maxDivisorRemainderFunc k y x)|>List.fold(fun acc x->mod10k k (acc+x)) 0L
 let findSum2=findSum2K 9
 let fibSum k N=
     let rec fibSumHelp k N state=
