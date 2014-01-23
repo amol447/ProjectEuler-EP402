@@ -82,16 +82,21 @@ let inline mod10k k x=
     match x%(pown 10L k) with
     |y when y<0L->y+pown 10L k
     |y->y
+let inline BigIntModK k x=
+    match x%k with
+    |y when y<BigInteger.Zero-> y+k
+    |y->y
+let inline BigIntMultModK k x y=x*y|>BigIntModK k
 let myMultMod10K k (x:int64) y=(x*y)|>mod10k k
 let myMult =myMultMod10K 9
-let fastFibMod10K k n=
-    let rec fastFibMod10KHelp k n x acc=
+let fastFibModK k n=
+    let rec fastFibModKHelp k n x acc=
         match n with
-        |1->matrixG.map(fun y->mod10k k y) (acc*x)
+        |1->matrixG.map(fun y->BigIntModK k y) (acc*x)
         |_->match n%2 with 
-            |0->fastFibMod10KHelp k (n/2) (matrixG.map(fun y->mod10k k y) x*x) acc
-            |_->fastFibMod10KHelp k (n-1) x (matrixG.map(fun y->mod10k k y)acc*x)
-    (fastFibMod10KHelp k n (matrixG.ofSeq[[1L;1L];[1L;0L]] ) (matrixG.identity 2))*(matrixG.ofSeq[[1L];[0L]])|>(fun x->x.[0,1])
+            |0->fastFibModKHelp k (n/2) (matrixG.map(fun y->BigIntModK k y) x*x) acc
+            |_->fastFibModKHelp k (n-1) x (matrixG.map(fun y->BigIntModK k y)acc*x)
+    (fastFibModKHelp k n (matrixG.ofSeq[[BigInteger.One;BigInteger.One];[BigInteger.One;BigInteger.Zero]] ) (matrixG.identity 2))*(matrixG.ofSeq[[BigInteger.One];[BigInteger.Zero]])|>(fun x->x.[1,0])
 let initState1=(0L,1)
 let initState2=(0L,1)
 let mod109 = mod10k 9
@@ -167,9 +172,13 @@ let maxDivisorContribution state d  =
     |>Seq.fold(fun acc x->mod109 (acc+x)) 0L 
     |>(fun x-> x *int64 d)|>mod109
 let findSum2K k y=divisorList|>List.map(fun x->maxDivisorRemainderFunc k y x)|>List.fold(fun acc x->mod10k k (acc+x)) 0L
+let findSum3K k y=
+        let (q,r)=y
+        let qtuple=((myPowMod10K k q 3 ),(myPowMod10K k q 2 ),q,1L)
+        List.init (List.length divisorList) (fun x->qtuple)|>List.zip divisorRemainderList|>Map.ofList
 let findSum2=findSum2K 9
 let fibSum k N=
-    let rec fibSumHelp k N state=
+    let rec fibSumHelp k N state =
         let (prev,prevprev,acc)=state
         match N with
         |1L->acc
