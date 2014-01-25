@@ -6,10 +6,7 @@ module main=
     //let test=divisorList|>List.map(fun x->(divTest.maxDivisorContribution (1L,0L) x)/x)//|>List.sum
     //printf "testAns=%A\n\r" test
     let N=150000002L
-//    let fibSeq=Seq.unfold(fun (prev,prevprev,n)->
-//        let nextFib=divTest.stateAdd prev prevprev
-//        if(n<N) then Some (prev ,(nextFib,prev,n+1L))
-//        else None) (divTest.initState1,divTest.initState2,1L)
+    
     //Seq.iter(fun x->printf "%A\n\r" x)fibSeq
     let createState N=
         let q=N/24L

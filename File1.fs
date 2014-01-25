@@ -89,14 +89,20 @@ let inline BigIntModK k x=
 let inline BigIntMultModK k x y=x*y|>BigIntModK k
 let myMultMod10K k (x:int64) y=(x*y)|>mod10k k
 let myMult =myMultMod10K 9
-let fastFibModK k n=
-    let rec fastFibModKHelp k n x acc=
-        match n with
-        |1->matrixG.map(fun y->BigIntModK k y) (acc*x)
-        |_->match n%2 with 
-            |0->fastFibModKHelp k (n/2) (matrixG.map(fun y->BigIntModK k y) x*x) acc
-            |_->fastFibModKHelp k (n-1) x (matrixG.map(fun y->BigIntModK k y)acc*x)
-    (fastFibModKHelp k n (matrixG.ofSeq[[BigInteger.One;BigInteger.One];[BigInteger.One;BigInteger.Zero]] ) (matrixG.identity 2))*(matrixG.ofSeq[[BigInteger.One];[BigInteger.Zero]])|>(fun x->x.[1,0])
+
+let fastMatrixExpModK k (M:Matrix<BigInteger>) n=
+    let (size,_)=M.Dimensions
+    let rec fastMatrixExpModKHelp k n (M:Matrix<BigInteger>) acc=
+        let (size,_)=M.Dimensions
+        match n with 
+        |y when y=0I-> acc
+        |_->match n%2I with 
+            |z when z=0I->fastMatrixExpModKHelp k (n/2I) (M*M|>matrixG.map(fun x->BigIntModK k x) ) acc
+            |_->fastMatrixExpModKHelp k (n-1I) M (M*acc|>matrixG.map(fun x->BigIntModK k x) )
+    fastMatrixExpModKHelp k  n M (matrixG.identity size)
+let fibMatrix=(matrixG.ofSeq[[BigInteger.One;BigInteger.One];[BigInteger.One;BigInteger.Zero]] )
+let fastFibModK k n=(fastMatrixExpModK k fibMatrix n).[1,0]
+    
 let initState1=(0L,1)
 let initState2=(0L,1)
 let mod109 = mod10k 9
@@ -184,4 +190,40 @@ let fibSum k N=
         |1L->acc
         |_->fibSumHelp k (N-1L) ((stateAdd prev prevprev),prev,mod10k k (acc + findSum2K k prev))
     fibSumHelp k N (initState1,initState2,0L)
+let fastFib n=
+    let rec fastExpTemp (M:Matrix<int64>) n acc=
+        let (size,_)=M.Dimensions
+        match n with 
+        |0L-> acc
+        |_->match n%2L with 
+            |0L->fastExpTemp (M*M) (n/2L) acc
+            |_->fastExpTemp   M (n-1L) (M*acc)
+    (fastExpTemp  (matrixG.ofSeq [[1L;1L];[1L;0L]]) n (matrixG.identity 2)).[1,0]
+let fibSumSkipModK k1 start jump N=
+    
+    let denominator= match jump%2L  with
+                     |0L->(fun x->x*x) (fastFib   jump)
+                     |_->(fastFib (2L*jump))/(fastFib jump)
+    let jump2=BigInteger jump
+    let kNew=(BigInteger denominator)*k1
+    let secondTerm=fastMatrixExpModK kNew fibMatrix (start+jump2*(N-1I))
+    let firstTerm=secondTerm*fastMatrixExpModK kNew fibMatrix jump2|>matrixG.map(fun x->BigIntModK kNew x) 
+    let multiplier=
+        match jump2-start with
+        |y when y=0I->0I
+        |y when y<0I-> match jump%2L with
+                        |0L-> 1I
+                        |_-> -1I
+        |_-> match start.IsEven with
+             |true-> -1I
+             |_->1I
+    let secondtermMultiplier= match jump%2L with
+                              |0L->BigInteger.One
+                              |_->BigInteger.MinusOne
+    let numerator=firstTerm.[1,0]-(secondtermMultiplier*secondTerm.[1,0])+multiplier*(fastFibModK kNew ((start,jump2)|>BigInteger.Subtract|>BigInteger.Abs) )
+    
+    let check=numerator % (BigInteger denominator)
+    match check with 
+    |y when y=0I->BigIntModK kNew (numerator/(BigInteger denominator))
+    |_->failwith "something is wrong in fibSumSkipModK"
 //let findSum y=divisorList|>List.map(fun x->maxDivisorContribution y x)|>List.fold(fun acc x->mod109 (acc+x)) 0L
