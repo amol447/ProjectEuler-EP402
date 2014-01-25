@@ -226,6 +226,6 @@ let fibSumSkipModK k1 start jump N=
     
     let check=numerator % denominator
     match check with 
-    |y when y=0I->BigIntModK kNew (numerator/denominator)
+    |y when y=0I->BigIntModK k1 (numerator/denominator)
     |_->failwith "something is wrong in fibSumSkipModK"
 //let findSum y=divisorList|>List.map(fun x->maxDivisorContribution y x)|>List.fold(fun acc x->mod109 (acc+x)) 0L
