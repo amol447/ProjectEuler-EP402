@@ -191,24 +191,26 @@ let fibSum k N=
         |_->fibSumHelp k (N-1L) ((stateAdd prev prevprev),prev,mod10k k (acc + findSum2K k prev))
     fibSumHelp k N (initState1,initState2,0L)
 let fastFib n=
-    let rec fastExpTemp (M:Matrix<int64>) n acc=
+    let rec fastExpTemp (M:Matrix<BigInteger>) n acc=
         let (size,_)=M.Dimensions
         match n with 
         |0L-> acc
         |_->match n%2L with 
             |0L->fastExpTemp (M*M) (n/2L) acc
             |_->fastExpTemp   M (n-1L) (M*acc)
-    (fastExpTemp  (matrixG.ofSeq [[1L;1L];[1L;0L]]) n (matrixG.identity 2)).[1,0]
+    (fastExpTemp  (fibMatrix) n (matrixG.identity 2)).[1,0]
 let fibSumSkipModK k1 start jump N=
-    
+    //The function cannot support large jump values
     let denominator= match jump%2L  with
-                     |0L->(fun x->x*x) (fastFib   jump)
+                     |0L->((fastFib (2L*jump))/(fastFib jump) )-2I
                      |_->(fastFib (2L*jump))/(fastFib jump)
     let jump2=BigInteger jump
-    let kNew=(BigInteger denominator)*k1
+    let kNew= denominator*k1
     let secondTerm=fastMatrixExpModK kNew fibMatrix (start+jump2*(N-1I))
-    let firstTerm=secondTerm*fastMatrixExpModK kNew fibMatrix jump2|>matrixG.map(fun x->BigIntModK kNew x) 
-    let multiplier=
+    let firstTerm=secondTerm*fastMatrixExpModK kNew fibMatrix jump2|>matrixG.map(fun x->BigIntModK kNew x)
+    let thirdTerm=(fastFibModK kNew ((start,jump2)|>BigInteger.Subtract|>BigInteger.Abs) ) 
+    let fourthTerm=fastFibModK kNew start
+    let thirdTermMultiplier=
         match jump2-start with
         |y when y=0I->0I
         |y when y<0I-> match jump%2L with
@@ -220,10 +222,10 @@ let fibSumSkipModK k1 start jump N=
     let secondtermMultiplier= match jump%2L with
                               |0L->BigInteger.One
                               |_->BigInteger.MinusOne
-    let numerator=firstTerm.[1,0]-(secondtermMultiplier*secondTerm.[1,0])+multiplier*(fastFibModK kNew ((start,jump2)|>BigInteger.Subtract|>BigInteger.Abs) )
+    let numerator= (firstTerm.[1,0]-(secondtermMultiplier*secondTerm.[1,0])+thirdTermMultiplier*thirdTerm-fourthTerm)|>BigIntModK kNew
     
-    let check=numerator % (BigInteger denominator)
+    let check=numerator % denominator
     match check with 
-    |y when y=0I->BigIntModK kNew (numerator/(BigInteger denominator))
+    |y when y=0I->BigIntModK kNew (numerator/denominator)
     |_->failwith "something is wrong in fibSumSkipModK"
 //let findSum y=divisorList|>List.map(fun x->maxDivisorContribution y x)|>List.fold(fun acc x->mod109 (acc+x)) 0L
