@@ -9,6 +9,8 @@ module matrixG=Matrix.Generic
 type listMonadBuilder()=
         member x.Bind(comp,func)= comp|>List.map(fun x->func x)|> List.concat
         member x.Return(comp)=[comp]
+
+
 //[<CustomComparison>]
 //type abcTriplet (ain,bin,cin)=
 //    member this.(a,b,c)=(ain,bin,cin)
@@ -89,17 +91,47 @@ let inline BigIntModK k x=
 let inline BigIntMultModK k x y=x*y|>BigIntModK k
 let myMultMod10K k (x:int64) y=(x*y)|>mod10k k
 let myMult =myMultMod10K 9
-
+let  fastExpGeneric x (n:BigInteger) multFunc =
+    let rec fastExpGenericHelp x n acc=match n with
+                                            |y when y=0I->acc
+                                            |y->match y.IsEven with
+                                                |true->fastExpGenericHelp (multFunc x x) (n/2I) acc
+                                                |_->fastExpGenericHelp  x (n-1I) (multFunc x acc)
+    fastExpGenericHelp x (n-1I) x
+type phiForm=
+    {
+     a:BigRational
+     b:BigRational
+    }
+    static member (*)(first:phiForm,second:phiForm)=
+        {a=(first.a*second.a)+5N*first.b*second.b;b=first.a*second.b+first.b*second.a}
+    static member (+)(first:phiForm,second:phiForm)=
+        {a=first.a+second.a;b=first.b+second.b}
+    static member (-)(first:phiForm,second:phiForm)=
+        {a=first.a-second.a;b=first.b-second.b}
+    static member complement x={a=x.a;b= -1N*x.b}
+    static member (/)(first:phiForm,second:phiForm)=
+        let numerator=first*phiForm.complement second
+        let denominator=second.a*second.a-5N*second.b*second.b
+        {a=numerator.a/denominator;b=numerator.b/denominator}
+    static member pown (first:phiForm) (second:BigInteger)=fastExpGeneric first second (*)
+    static member pownModK (third:BigInteger) (first:phiForm )(second:BigInteger) =
+        //Extremely Dangerous function. USE with caution
+        let BigRationalModK k (x:BigRational)=( x.Numerator%(k*x.Denominator)|>(fun y->BigRational.FromBigInt y))/BigRational.FromBigInt x.Denominator
+        fastExpGeneric first second (fun x y->x*y|>(fun z->{a=BigRationalModK third z.a;b=BigRationalModK third z.b}))
+        
+    static member Zero={a=0N;b=0N}
+    static member One={a=1N;b=0N}
+let phi={a=1N/2N;b=1N/2N}
+let psi=phiForm.complement phi
+let FibFromPhiModK k n=match n with
+                       |y when y=0I->0I
+                       |_->((phiForm.pownModK k phi n).b*2N)|>(fun x-> x|>BigRational.ToBigInt|>BigIntModK k)
 let fastMatrixExpModK k (M:Matrix<BigInteger>) n=
     let (size,_)=M.Dimensions
-    let rec fastMatrixExpModKHelp k n (M:Matrix<BigInteger>) acc=
-        let (size,_)=M.Dimensions
-        match n with 
-        |y when y=0I-> acc
-        |_->match n%2I with 
-            |z when z=0I->fastMatrixExpModKHelp k (n/2I) (M*M|>matrixG.map(fun x->BigIntModK k x) ) acc
-            |_->fastMatrixExpModKHelp k (n-1I) M (M*acc|>matrixG.map(fun x->BigIntModK k x) )
-    fastMatrixExpModKHelp k  n M (matrixG.identity size)
+    match n with
+    |y when y=0I->matrixG.identity size
+    |_->fastExpGeneric M n (fun x y->x*y|> (matrixG.map(fun x->BigIntModK k x)))
 let fibMatrix=(matrixG.ofSeq[[BigInteger.One;BigInteger.One];[BigInteger.One;BigInteger.Zero]] )
 let fastFibModK k n=(fastMatrixExpModK k fibMatrix n).[1,0]
     
@@ -190,15 +222,12 @@ let fibSum k N=
         |1L->acc
         |_->fibSumHelp k (N-1L) ((stateAdd prev prevprev),prev,mod10k k (acc + findSum2K k prev))
     fibSumHelp k N (initState1,initState2,0L)
-let fastFib n=
-    let rec fastExpTemp (M:Matrix<BigInteger>) n acc=
-        let (size,_)=M.Dimensions
-        match n with 
-        |0L-> acc
-        |_->match n%2L with 
-            |0L->fastExpTemp (M*M) (n/2L) acc
-            |_->fastExpTemp   M (n-1L) (M*acc)
-    (fastExpTemp  (fibMatrix) n (matrixG.identity 2)).[1,0]
+
+
+                                                
+let fastFib n=match n with 
+              |0L->0I
+              |_->(fastExpGeneric  (fibMatrix) (BigInteger n) (*)).[1,0]
 let fibSumSkipModK k1 start jump N=
     //The function cannot support large jump values
     let denominator= match jump%2L  with
@@ -228,4 +257,14 @@ let fibSumSkipModK k1 start jump N=
     match check with 
     |y when y=0I->BigIntModK k1 (numerator/denominator)
     |_->failwith "something is wrong in fibSumSkipModK"
+
+let inline tuplePhiMult x y=
+    let a,b=x
+    let c,d=y
+    ((a*c+5I*b*d),(a*d+b*c))
+//let fibCubedSumSkipModK k start jump N=
+//    let firstTerm=fibSumSkipModK (5I*k) (3I*start) (3L*jump) N
+//    let secondTerm=fibSumSkipModK (5I*k) start jump N
+//    let multiplier=start+
+//    firstTerm+
 //let findSum y=divisorList|>List.map(fun x->maxDivisorContribution y x)|>List.fold(fun acc x->mod109 (acc+x)) 0L
