@@ -280,6 +280,23 @@ let fibCubeSecondTermSumSkipModk k start (jump:int64) (N:BigInteger)=
     match (start.IsEven) with
     |true-> temp|>BigIntModK k
     |_-> -1I*temp|>BigIntModK k
+let fibSquaredSumSkipModK k start (jump:int64) (N:BigInteger)=
+    let jump2=2I*BigInteger jump 
+    let denominator=phiForm.pown phi jump2 - phiForm.One
+    let kNew=BigInteger.Abs (5I*k*(phiForm.multComplement denominator).Numerator)
+    let numerator=phiForm.pownModK kNew phi (2I*start+jump2*N) - phiForm.pownModK kNew phi (2I*start)
+    let firstTerm=(numerator/denominator).a*2N|>BigRational.ToBigInt|>BigIntModK (k*5I)
+    let constFactorStartContrib=match start.IsEven with 
+                                |true-> -1I
+                                |_-> 1I
+    let constFactor=constFactorStartContrib*
+                    match jump%2L=0L with
+                    |true->2I*N|>BigIntModK (k*5I)
+                    |_->match N.IsEven with 
+                        |true->0I
+                        |_->2I|>BigIntModK (k*5I)
+    (firstTerm+constFactor)/5I|>BigIntModK k
+    //let numerator=phiForm.pownModK 
 let inline tuplePhiMult x y=
     let a,b=x
     let c,d=y
