@@ -15,6 +15,8 @@ module main=
         |0L->(q-1L,24)
         |_->(q,int r)
     printf "testAns%A\n\r" (divTest.findSum2 (createState 10L))
+    printfn "%A" (divTest.fibCubeSecondTermSumSkipModk 10I 0I 1L 6I)
+    printfn "%A" (divTest.fibCubedSumSkipModK 10I 0I 2L 6I)
     printf "newFibSumAns%A\n\r" (divTest.fibSum 9 N)
     printfn "%A" (List.init 20 (fun i->divTest.FibFromPhiModK 10000I (BigInteger i)))
     //let finalAns=Seq.map(fun x->findSum x) fibSeq

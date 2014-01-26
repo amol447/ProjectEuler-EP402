@@ -103,6 +103,8 @@ type phiForm=
      a:BigRational
      b:BigRational
     }
+    static member Zero={a=0N;b=0N}
+    static member One={a=1N;b=0N}
     static member (*)(first:phiForm,second:phiForm)=
         {a=(first.a*second.a)+5N*first.b*second.b;b=first.a*second.b+first.b*second.a}
     static member (+)(first:phiForm,second:phiForm)=
@@ -114,14 +116,18 @@ type phiForm=
         let numerator=first*phiForm.complement second
         let denominator=second.a*second.a-5N*second.b*second.b
         {a=numerator.a/denominator;b=numerator.b/denominator}
-    static member pown (first:phiForm) (second:BigInteger)=fastExpGeneric first second (*)
+    static member pown (first:phiForm) (second:BigInteger)=
+        match second with
+        |y when y=0I->phiForm.One
+        |_->fastExpGeneric first second (*)
     static member pownModK (third:BigInteger) (first:phiForm )(second:BigInteger) =
         //Extremely Dangerous function. USE with caution
         let BigRationalModK k (x:BigRational)=( x.Numerator%(k*x.Denominator)|>(fun y->BigRational.FromBigInt y))/BigRational.FromBigInt x.Denominator
-        fastExpGeneric first second (fun x y->x*y|>(fun z->{a=BigRationalModK third z.a;b=BigRationalModK third z.b}))
-        
-    static member Zero={a=0N;b=0N}
-    static member One={a=1N;b=0N}
+        match second with
+        |y when y=0I->phiForm.One
+        |_->fastExpGeneric first second (fun x y->x*y|>(fun z->{a=BigRationalModK third z.a;b=BigRationalModK third z.b}))
+    static member multComplement (x:phiForm)=x*phiForm.complement x|>(fun x->x.a )
+    
 let phi={a=1N/2N;b=1N/2N}
 let psi=phiForm.complement phi
 let FibFromPhiModK k n=match n with
@@ -257,14 +263,31 @@ let fibSumSkipModK k1 start jump N=
     match check with 
     |y when y=0I->BigIntModK k1 (numerator/denominator)
     |_->failwith "something is wrong in fibSumSkipModK"
-
+let fibCubeSecondTermSumSkipModk k start (jump:int64) (N:BigInteger)=
+    let isJumpEven=(jump%2L=0L)
+    let denominator=
+        match isJumpEven with
+        |false->phiForm.One+(phiForm.pown phi (BigInteger jump))
+        |_->phiForm.One-(phiForm.pown phi (BigInteger jump))
+    let kNew=BigInteger.Abs (k*(phiForm.multComplement denominator).Numerator)
+    let firstTerm=phiForm.pownModK kNew phi start
+    let secondTerm=(start+(BigInteger jump)*N)|>phiForm.pownModK kNew phi
+    let numerator=match N.IsEven||isJumpEven with
+                  |true->firstTerm-secondTerm
+                  |_->firstTerm+secondTerm
+    //let minusOne={a= -1N;b=0N}
+    let temp=(numerator/denominator).b*2N|>BigRational.ToBigInt
+    match (start.IsEven) with
+    |true-> temp|>BigIntModK k
+    |_-> -1I*temp|>BigIntModK k
 let inline tuplePhiMult x y=
     let a,b=x
     let c,d=y
     ((a*c+5I*b*d),(a*d+b*c))
-//let fibCubedSumSkipModK k start jump N=
-//    let firstTerm=fibSumSkipModK (5I*k) (3I*start) (3L*jump) N
-//    let secondTerm=fibSumSkipModK (5I*k) start jump N
+let fibCubedSumSkipModK k start jump N=
+   let firstTerm=fibSumSkipModK (5I*k) (3I*start) (3L*jump) N
+   let secondTerm=fibCubeSecondTermSumSkipModk (5I*k) start jump N
+   ((firstTerm-3I*secondTerm)/5I)|>BigIntModK k
 //    let multiplier=start+
 //    firstTerm+
 //let findSum y=divisorList|>List.map(fun x->maxDivisorContribution y x)|>List.fold(fun acc x->mod109 (acc+x)) 0L
