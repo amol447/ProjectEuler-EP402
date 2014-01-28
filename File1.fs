@@ -172,14 +172,17 @@ let groupByFunc (a,b,c) r=
             acc) 0 listed
 
 let  myPowMod10K k x n  =
-    let rec myPowMod10KHelp k x n acc= 
-        let y=(mod10k k x)
-        match n with
-        |0->acc
-        |_->match n%2 with
-            |0->myPowMod10KHelp k (myMultMod10K k y y) (n/2) acc
-            |_->myPowMod10KHelp k y (n-1) (myMultMod10K k acc y)
-    myPowMod10KHelp k x n 1L  
+    match n with
+    |0->1L
+    |_->fastExpGeneric x (BigInteger n) (fun x y->x*y|>mod10k  k)
+//    let rec myPowMod10KHelp k x n acc= 
+//        let y=(mod10k k x)
+//        match n with
+//        |0->acc
+//        |_->match n%2 with
+//            |0->myPowMod10KHelp k (myMultMod10K k y y) (n/2) acc
+//            |_->myPowMod10KHelp k y (n-1) (myMultMod10K k acc y)
+//    myPowMod10KHelp k x n 1L  
 let divisorList=[1;2;3;4;6;8;12;24]
 let remainderList=[1..24]
 let divisorRemainderList=listMonadBuilder() {
@@ -305,6 +308,36 @@ let fibCubedSumSkipModK k start jump N=
    let firstTerm=fibSumSkipModK (5I*k) (3I*start) (3L*jump) N
    let secondTerm=fibCubeSecondTermSumSkipModk (5I*k) start jump N
    ((firstTerm-3I*secondTerm)/5I)|>BigIntModK k
+let quotientCubedSumSkipModK k r start jump N=
+    let kNew=(pown 24I 3)*k
+    let firstTerm=fibCubedSumSkipModK kNew start jump N|>BigIntModK kNew
+    let secondTerm=(3I*r*r* fibSumSkipModK kNew start jump N)|>BigIntModK kNew
+    let thirdTerm=(3I*r*fibSquaredSumSkipModK kNew start jump N)|>BigIntModK kNew
+    let lastTerm=r*r*r*N|>BigIntModK kNew
+    (firstTerm+secondTerm-thirdTerm+lastTerm)/(pown 24I 3)|>BigIntModK k
+let quotientSquaredSumSkipModK k r start jump N=
+    let kNew=(pown 24I 2)*k
+    let firstTerm=fibSquaredSumSkipModK kNew start jump N|>BigIntModK kNew
+    let secondTerm=r*r*N|>BigIntModK kNew
+    let thirdTerm=2I*r*(fibSumSkipModK k start jump N)|>BigIntModK kNew
+    (firstTerm+secondTerm-thirdTerm)/(pown 24I 2)|>BigIntModK k
+let quotientSumSkipModK k r start jump N=
+    let kNew=24I*k
+    ((fibSumSkipModK kNew start jump N) - (r*N|>BigIntModK kNew))/24I|>BigIntModK k
+let findSum4K k N=
+    let startList=[2L..25L]
+    let remainderList=startList|>List.map(fun x->(fastFib x)%24I)
+    let jump=24I
+    let numOfTermList=startList|>List.map(fun x-> match  N%24I with
+                                                  |y when y=0I->N/24I
+                                                  |y when y=1I->N/24I
+                                                  |_->match (N%24I)>=BigInteger x with
+                                                      |true->N/24I+1I
+                                                      |_->N/24I)
+    let quotientCubedSumList=numOfTermList|>List.map3(fun start remainder numOfTerms->quotientCubedSumSkipModK k remainder start jump numOfTerms) startList remainderList
+    let quotientSquaredSumList=numOfTermList|>List.map3(fun start remainder numOfTerms->quotientSquaredSumSkipModK k remainder start jump numOfTerms) startList remainderList
+    let quotientSumList=numOfTermList|>List.map3(fun start remainder numOfTerms->quotientSumSkipModK k remainder start jump numOfTerms) startList remainderList
+
 //    let multiplier=start+
 //    firstTerm+
 //let findSum y=divisorList|>List.map(fun x->maxDivisorContribution y x)|>List.fold(fun acc x->mod109 (acc+x)) 0L
