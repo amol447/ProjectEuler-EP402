@@ -342,12 +342,12 @@ let quotientSumSkipModK k r start jump N=
         result
 let findSum4K k N=
     let startList=[2L..25L]
-    let remainderList=startList|>List.map(fun x->(fastFib x)%24I)
+    let remainderList=startList|>List.map(fun x->let z=(fastFib x)%24I
+                                                 match z with |y when y=0I->24I|y->y)
     let startRemDict=Map.ofList (List.zip startList remainderList)
     let jump=24L
-    let numOfTermList=startList|>List.map(fun x-> match  x%24L with
-                                                  |y when y=0L->N/24I
-                                                  |y when y=1L->N/24I
+    let numOfTermList=startList|>List.map(fun x-> match  N%24I with
+                                                  |y when y=0I->N/24I
                                                   |_->match (N%24I)>=(-1I+BigInteger x) with
                                                       |true->N/24I+1I
                                                       |_->N/24I)
@@ -365,8 +365,7 @@ let findSum4K k N=
     let divStartList=divisorList|>List.map(fun x->startList|>List.map(fun y->(x,y)))|>List.concat
 
     let result=divStartList
-               |>List.map(fun (d,s)->let r2=int32 (startRemDict.[s])
-                                     let r=match r2 with |0->24|y->y
+               |>List.map(fun (d,s)->let r=int32 (startRemDict.[s])                                     
                                      maxDivisorContribRemainderCache.[(d,r)]
                                      |>(fun (a,b,c,e)->(BigInteger a)*quotientCubedSumDict.[s] + (BigInteger b)*quotientSquaredSumDict.[s] + (BigInteger c)*quotientSumDict.[s] + (BigInteger e)*numOfTermStartDict.[s]
                                                       |>BigIntModK k))
