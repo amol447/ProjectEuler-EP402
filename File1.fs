@@ -4,7 +4,7 @@ open System
 open System.Numerics
 open System.Collections.Generic
 open Microsoft.FSharp.Math
-open FsCheck
+//open FsCheck
 module matrixG=Matrix.Generic
 type listMonadBuilder()=
         member x.Bind(comp,func)= comp|>List.map(fun x->func x)|> List.concat

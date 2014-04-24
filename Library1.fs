@@ -14,11 +14,13 @@ module main=
         match r with
         |0L->(q-1L,24)
         |_->(q,int r)
-    printf "testAns%A\n\r" (divTest.findSum2 (createState 10L))
-    printfn "%A" (divTest.fibCubeSecondTermSumSkipModk 10I 0I 1L 6I)
-    printfn "%A" (divTest.fibCubedSumSkipModK 10I 0I 2L 6I)
-    printf "newFibSumAns%A\n\r" (divTest.fibSum 9 N)
-    printfn "%A" (List.init 20 (fun i->divTest.FibFromPhiModK 10000I (BigInteger i)))
+//    printfn "%A" (divTest.findSum4K 10I 23I)
+//    printf "testAns%A\n\r" (divTest.findSum2 (createState 10L))
+//    printfn "%A" (divTest.fibCubeSecondTermSumSkipModk 10I 0I 1L 6I)
+//    printfn "%A" (divTest.fibCubedSumSkipModK (pown 10I 9) 10I 22L (pown 10I 27))
+//    printf "newFibSumAns%A\n\r" (divTest.fibSum 9 N)
+//    printfn "%A" (List.init 20 (fun i->divTest.FibFromPhiModK 10000I (BigInteger i)))
+    printfn "%A" (divTest.findSum4K (pown 10I 9) 1234567890122I)
     //let finalAns=Seq.map(fun x->findSum x) fibSeq
     //let finalAns=Seq.fold(fun acc x->divTest.mod109 (acc+divTest.findSum2 x)) 0L fibSeq
     //Seq.iter(fun x->printf "%A\n\r" x ) finalAns
